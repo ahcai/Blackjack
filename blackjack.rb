@@ -71,29 +71,10 @@ class Blackjack
   #Play a round.
   def play()
     #Set up the game.
-    @dealer.hand.hit(@dealer.deal())
-    @dealer.hand.hit(@dealer.deal())
-
-    for player in @players
-      hand = Hand.new(player.name)
-      hand.hit(@dealer.deal())
-      hand.hit(@dealer.deal())
-      player.hands.push(hand)
-    end
-
+    self.set_up()
+    
     #Ask for bets.
-    for player in @players
-      puts "How much money would you like to bet, #{player.name}? Please enter an integer amount."
-      amount = gets.chomp.to_i
-      is_int = amount.is_a?(Integer)
-      while !player.valid_bet(amount) or !is_int
-        puts "Invalid amount. Please try again."
-        amount = gets.chomp.to_i
-        is_int = amount.is_a?(Integer)
-      end
-      player.set_bet(amount)
-      player.make_bet(amount, player.hands[0])
-    end
+    self.make_bets()
 
     #Hit/stand/double down/split.
     for player in @players
@@ -108,16 +89,8 @@ class Blackjack
             break
           end
 
-          options = ["hit", "stand"]
-          #Can player split?
-          if player.can_split and hand.can_split()
-            options.push("split")
-          end
-          #Can player double down?
-          if player.can_double_down
-            options.push("double down")
-          end
-
+          #Get valid options for player hand.
+          options = self.get_options(player, hand)
           puts "#{player.name}, what would you like to do? Please choose one: " + options.join(", ")
           decision = gets.chomp
           while !options.include?(decision)
@@ -125,13 +98,12 @@ class Blackjack
             decision = gets.chomp
           end
 
+          #Deal with the decision.
           case decision
           when "hit"
             hand.hit(@dealer.deal())
-
           when "stand"
             hand.stand()
-
           when "split"
             new_hand = hand.split()
             player.make_bet(player.bet, new_hand)
@@ -143,11 +115,11 @@ class Blackjack
             end
             hand.hit(@dealer.deal())
             new_hand.hit(@dealer.deal())
-
           when "double down"
             player.double_down(hand)
             hand.hit(@dealer.deal())
             hand.stand()
+            puts "player money: " + player.money.to_s
           end
 
           if hand.bust()
@@ -168,33 +140,7 @@ class Blackjack
     end
 
     #Determine outcome of round.
-    puts ""
-    puts "++++++++RESULTS++++++++"
-    puts ""
-    @dealer.hand.to_s()
-    for player in @players
-      hand_count = 1
-      for hand in player.hands
-        dealer_total = @dealer.hand.get_value()
-        hand_total = hand.get_value()
-        if (hand.bust() and !@dealer.hand.bust()) or (hand_total < dealer_total and !@dealer.hand.bust())
-          puts "#{player.name}'s hand ##{hand_count.to_s} lost to the dealer's!"
-        elsif (!hand.bust() and hand_total > dealer_total) or (@dealer.hand.bust() and !hand.bust())
-          player.money += hand.bet * 2
-          puts "#{player.name}'s hand ##{hand_count.to_s} won against the dealer's!"
-        else
-          player.money += hand.bet
-          puts "#{player.name}'s hand ##{hand_count.to_s} tied against the dealer's!"
-        end
-
-        hand_count += 1
-
-      end
-    end
-    puts ""
-    for player in @players
-      player.to_s
-    end
+    self.get_results()
 
     #Determine the players that can continue.
     for player in @players
@@ -206,19 +152,81 @@ class Blackjack
 
     #Reset hands and bets.
     self.clean()
-
-    #DEBUGGING PORTION------------------
-
-    debug("Number of players = " + @players.length.to_s)
-
-    @players.each do |player|
-      player.hands.each do |hand|
-        debug(hand.get_value())
-      end
-    end
-
-    #END OF DEBUGGING PORTION-----------
   end
+
+def set_up()
+  #Deal two cards to the dealer.
+  @dealer.hand.hit(@dealer.deal())
+  @dealer.hand.hit(@dealer.deal())
+
+  #Deal two cards to each player.
+  for player in @players
+    hand = Hand.new(player.name)
+    hand.hit(@dealer.deal())
+    hand.hit(@dealer.deal())
+    player.hands.push(hand)
+  end
+end
+
+def make_bets()
+  for player in @players
+    puts "How much money would you like to bet, #{player.name}? Please enter an integer amount."
+    amount = gets.chomp.to_i
+    is_int = amount.is_a?(Integer)
+    while !player.valid_bet(amount) or !is_int
+      puts "Invalid amount. Please try again."
+      amount = gets.chomp.to_i
+      is_int = amount.is_a?(Integer)
+    end
+    player.set_bet(amount)
+    player.make_bet(amount, player.hands[0])
+  end
+end
+
+def get_options(player, hand)
+  options = ["hit", "stand"]
+  #Can player split?
+  if player.can_split and hand.can_split()
+    options.push("split")
+  end
+  #Can player double down?
+  if player.can_double_down
+    options.push("double down")
+  end
+  return options
+end
+
+def get_results()
+  puts ""
+  puts "++++++++RESULTS++++++++"
+  puts ""
+  @dealer.hand.to_s()
+  for player in @players
+    hand_count = 1
+    for hand in player.hands
+      dealer_total = @dealer.hand.get_value()
+      hand_total = hand.get_value()
+      if (hand.bust() and !@dealer.hand.bust()) or (hand_total < dealer_total and !@dealer.hand.bust())
+        puts "#{player.name}'s hand ##{hand_count.to_s} lost to the dealer's!"
+      elsif (!hand.bust() and hand_total > dealer_total) or (@dealer.hand.bust() and !hand.bust())
+        player.money += hand.bet * 2
+        puts "#{player.name}'s hand ##{hand_count.to_s} won against the dealer's!"
+      else
+        player.money += hand.bet
+        puts "#{player.name}'s hand ##{hand_count.to_s} tied against the dealer's!"
+      end
+
+      hand_count += 1
+
+    end
+  end
+
+  #Print out stats of players.
+  puts ""
+  for player in @players
+    player.to_s
+  end
+end
 
 def clean()
   @dealer.hand = Hand.new("Dealer")

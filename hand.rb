@@ -60,7 +60,7 @@ class Hand
   def can_split()
     #Can split only if there are two cards in the hand, and both cards have the same face value.
     if @cards.length == 2
-      if ["J","Q","K"].include?(@cards[0].value) and ["J","Q","K"].include?(@cards[1].value)
+      if ["10", "J","Q","K"].include?(@cards[0].value) and ["10", "J","Q","K"].include?(@cards[1].value)
         return true
       end
       return @cards[0].value == @cards[1].value

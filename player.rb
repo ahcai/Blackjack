@@ -26,9 +26,9 @@ class Player
   end
 
   def double_down(hand)
+    @money -= hand.bet
     hand.make_bet(hand.bet)
-    @money -= @bet
-    @bet += @bet
+    @bet += hand.bet
   end
 
   def can_double_down()
